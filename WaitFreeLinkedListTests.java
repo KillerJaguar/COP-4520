@@ -3,7 +3,7 @@ public class WaitFreeLinkedListTests
 	public static void main(String[] args)
 	{
 		WaitFreeLinkedList<Integer> test;
-		test = new WaitFreeLinkedList<Integer>(1);
+		test = new SequentialWaitFreeLinkedList<Integer>();
 		
 		// Insert
 		
