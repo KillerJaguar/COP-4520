@@ -20,7 +20,7 @@ public class SequentialWaitFreeLinkedList<E extends Comparable<E>>
 		this.head = null;
 	}
 	
-	public void insert(E item)
+	public synchronized void insert(E item)
 	{
 		// Sequential implementation
 		
@@ -59,7 +59,7 @@ public class SequentialWaitFreeLinkedList<E extends Comparable<E>>
 		prev.next = new Node(item, null); 
 	}
 	
-	public void delete(E item)
+	public synchronized void delete(E item)
 	{
 		// Sequential implementation
 		
@@ -84,7 +84,7 @@ public class SequentialWaitFreeLinkedList<E extends Comparable<E>>
 		}
 	}
 	
-	public boolean contains(E item)
+	public synchronized boolean contains(E item)
 	{
 		// Sequential implementation
 		
