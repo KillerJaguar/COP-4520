@@ -3,7 +3,7 @@ import java.util.Random;
 public class WaitFreeLinkedListTests
 {
 	static final int NUM_TESTS = 500000;
-	static final int RAND_MAX = 1000000;
+	static final int RAND_MAX  = 250000;
 	
 	public static void main(String[] args)
 	{		
@@ -12,14 +12,18 @@ public class WaitFreeLinkedListTests
 		test = new SequentialWaitFreeLinkedList<Integer>();
 		
 		System.out.println("Testing one thread...");
-		System.out.println("Execution time: " + test1Thread(test) + " ms");
+		System.out.println("Execution time 25i/75d: " + test1Thread(test,.25) + " ms");
+		System.out.println("Execution time 50i/50d: " + test1Thread(test,.5) + " ms");
+		System.out.println("Execution time 75i/25d: " + test1Thread(test,.75) + " ms");
 		
 		test = new SequentialWaitFreeLinkedList<Integer>();
 		
 		try
 		{
 			System.out.println("Testing two threads...");
-			System.out.println("Execution time: " + test2Threads(test) + " ms");
+			System.out.println("Execution time 25i/75d: " + test2Threads(test,.25) + " ms");
+			System.out.println("Execution time 50i/50d: " + test2Threads(test,.5) + " ms");
+			System.out.println("Execution time 75i/25d: " + test2Threads(test,.75) + " ms");
 		}
 		catch (InterruptedException e)
 		{
@@ -31,7 +35,10 @@ public class WaitFreeLinkedListTests
 		try
 		{
 			System.out.println("Testing four threads...");
-			System.out.println("Execution time: " + test4Threads(test) + " ms");
+			System.out.println("Execution time 25i/75d: " + test4Threads(test,.25) + " ms");
+			System.out.println("Execution time 50i/50d: " + test4Threads(test,.5) + " ms");
+			System.out.println("Execution time 75i/25d: " + test4Threads(test,.75) + " ms");
+			
 		}
 		catch (InterruptedException e)
 		{
@@ -43,7 +50,9 @@ public class WaitFreeLinkedListTests
 		try
 		{
 			System.out.println("Testing eight threads...");
-			System.out.println("Execution time: " + test8Threads(test) + " ms");
+			System.out.println("Execution time 25i/75d: " + test8Threads(test,.25) + " ms");
+			System.out.println("Execution time 50i/50d: " + test8Threads(test,.5) + " ms");
+			System.out.println("Execution time 75i/25d: " + test8Threads(test,.75) + " ms");
 		}
 		catch (InterruptedException e)
 		{
@@ -51,17 +60,24 @@ public class WaitFreeLinkedListTests
 		}
 	}
 	
-	static long test1Thread(WaitFreeLinkedList<Integer> test)
+	static long test1Thread(WaitFreeLinkedList<Integer> test,double dist)
 	{
 		long startTime = System.currentTimeMillis();
 		
-		testInsert(test, NUM_TESTS/2);
-		testDelete(test, NUM_TESTS/2);
+		for (int i=0;i<NUM_TESTS;i++){
+			if (Math.random()<dist)
+				testInsert(test, 1);
+			else
+				testDelete(test, 1);
+		}
+		
+		//testInsert(test, NUM_TESTS/2);
+		//testDelete(test, NUM_TESTS/2);
 		
 		return System.currentTimeMillis() - startTime;
 	}
 	
-	static long test2Threads(WaitFreeLinkedList<Integer> test)
+	static long test2Threads(WaitFreeLinkedList<Integer> test,double dist)
 		throws InterruptedException
 	{
 		long startTime = System.currentTimeMillis();
@@ -73,7 +89,13 @@ public class WaitFreeLinkedListTests
 		{
 			public void run()
 			{
-				testInsert(test, NUM_TESTS);
+				for (int i=0;i<NUM_TESTS/2;i++){
+			if (Math.random()<dist)
+				testInsert(test, 1);
+			else
+				testDelete(test, 1);
+			}
+				//testInsert(test, NUM_TESTS);
 			}
 		};
 		
@@ -84,7 +106,13 @@ public class WaitFreeLinkedListTests
 		{
 			public void run()
 			{
-				testDelete(test, NUM_TESTS);
+				for (int i=0;i<NUM_TESTS/2;i++){
+					if (Math.random()<dist)
+						testInsert(test, 1);
+					else
+						testDelete(test, 1);
+				}
+				//testDelete(test, NUM_TESTS);
 			}
 		};
 		
@@ -96,7 +124,7 @@ public class WaitFreeLinkedListTests
 		return System.currentTimeMillis() - startTime;
 	}
 	
-	static long test4Threads(WaitFreeLinkedList<Integer> test)
+	static long test4Threads(WaitFreeLinkedList<Integer> test,double dist)
 		throws InterruptedException
 	{
 		long startTime = System.currentTimeMillis();
@@ -107,7 +135,13 @@ public class WaitFreeLinkedListTests
 		{
 			public void run()
 			{
-				testInsert(test, NUM_TESTS);
+				for (int i=0;i<NUM_TESTS/2;i++){
+					if (Math.random()<dist)
+						testInsert(test, 1);
+					else
+						testDelete(test, 1);
+				}
+				//testInsert(test, NUM_TESTS);
 			}
 		};
 		
@@ -117,7 +151,13 @@ public class WaitFreeLinkedListTests
 		{
 			public void run()
 			{
-				testDelete(test, NUM_TESTS);
+				for (int i=0;i<NUM_TESTS/2;i++){
+					if (Math.random()<dist)
+						testInsert(test, 1);
+					else
+						testDelete(test, 1);
+				}
+				//testDelete(test, NUM_TESTS);
 			}
 		};
 		
@@ -127,8 +167,14 @@ public class WaitFreeLinkedListTests
 		{
 			public void run()
 			{
-				testDelete(test, NUM_TESTS/2);
-				testInsert(test, NUM_TESTS/2);
+				for (int i=0;i<NUM_TESTS/2;i++){
+					if (Math.random()<dist)
+						testInsert(test, 1);
+					else
+						testDelete(test, 1);
+				}
+				//testDelete(test, NUM_TESTS/2);
+				//testInsert(test, NUM_TESTS/2);
 			}
 		};
 		
@@ -138,10 +184,16 @@ public class WaitFreeLinkedListTests
 		{
 			public void run()
 			{
-				testDelete(test, NUM_TESTS/4);
-				testInsert(test, NUM_TESTS/4);
-				testDelete(test, NUM_TESTS/4);
-				testInsert(test, NUM_TESTS/4);
+				for (int i=0;i<NUM_TESTS/2;i++){
+					if (Math.random()<dist)
+						testInsert(test, 1);
+					else
+						testDelete(test, 1);
+				}
+				//testDelete(test, NUM_TESTS/4);
+				//testInsert(test, NUM_TESTS/4);
+				//testDelete(test, NUM_TESTS/4);
+				//testInsert(test, NUM_TESTS/4);
 			}
 		};
 		
@@ -153,7 +205,7 @@ public class WaitFreeLinkedListTests
 		return System.currentTimeMillis() - startTime;
 	}
 	
-	static long test8Threads(WaitFreeLinkedList<Integer> test)
+	static long test8Threads(WaitFreeLinkedList<Integer> test,double dist)
 		throws InterruptedException
 	{
 		long startTime = System.currentTimeMillis();
@@ -164,7 +216,13 @@ public class WaitFreeLinkedListTests
 		{
 			public void run()
 			{
-				testInsert(test, NUM_TESTS);
+				for (int i=0;i<NUM_TESTS/2;i++){
+					if (Math.random()<dist)
+						testInsert(test, 1);
+					else
+						testDelete(test, 1);
+				}
+				//testInsert(test, NUM_TESTS);
 			}
 		};
 		
@@ -174,7 +232,13 @@ public class WaitFreeLinkedListTests
 		{
 			public void run()
 			{
-				testInsert(test, NUM_TESTS);
+				for (int i=0;i<NUM_TESTS/2;i++){
+					if (Math.random()<dist)
+						testInsert(test, 1);
+					else
+						testDelete(test, 1);
+				}
+				//testInsert(test, NUM_TESTS);
 			}
 		};
 		
@@ -184,7 +248,13 @@ public class WaitFreeLinkedListTests
 		{
 			public void run()
 			{
-				testInsert(test, NUM_TESTS);
+				for (int i=0;i<NUM_TESTS/2;i++){
+					if (Math.random()<dist)
+						testInsert(test, 1);
+					else
+						testDelete(test, 1);
+				}
+				//testInsert(test, NUM_TESTS);
 			}
 		};
 		
@@ -194,7 +264,13 @@ public class WaitFreeLinkedListTests
 		{
 			public void run()
 			{
-				testInsert(test, NUM_TESTS);
+				for (int i=0;i<NUM_TESTS/2;i++){
+					if (Math.random()<dist)
+						testInsert(test, 1);
+					else
+						testDelete(test, 1);
+				}
+				//testInsert(test, NUM_TESTS);
 			}
 		};
 		
@@ -204,7 +280,13 @@ public class WaitFreeLinkedListTests
 		{
 			public void run()
 			{
-				testDelete(test, NUM_TESTS);
+				for (int i=0;i<NUM_TESTS/2;i++){
+					if (Math.random()<dist)
+						testInsert(test, 1);
+					else
+						testDelete(test, 1);
+				}
+				//testDelete(test, NUM_TESTS);
 			}
 		};
 		
@@ -214,7 +296,13 @@ public class WaitFreeLinkedListTests
 		{
 			public void run()
 			{
-				testDelete(test, NUM_TESTS);
+				for (int i=0;i<NUM_TESTS/2;i++){
+					if (Math.random()<dist)
+						testInsert(test, 1);
+					else
+						testDelete(test, 1);
+				}
+				//testDelete(test, NUM_TESTS);
 			}
 		};
 		
@@ -224,7 +312,13 @@ public class WaitFreeLinkedListTests
 		{
 			public void run()
 			{
-				testDelete(test, NUM_TESTS);
+				for (int i=0;i<NUM_TESTS/2;i++){
+					if (Math.random()<dist)
+						testInsert(test, 1);
+					else
+						testDelete(test, 1);
+				}
+				//testDelete(test, NUM_TESTS);
 			}
 		};
 		
@@ -234,7 +328,13 @@ public class WaitFreeLinkedListTests
 		{
 			public void run()
 			{
-				testDelete(test, NUM_TESTS);
+				for (int i=0;i<NUM_TESTS/2;i++){
+					if (Math.random()<dist)
+						testInsert(test, 1);
+					else
+						testDelete(test, 1);
+				}
+				//testDelete(test, NUM_TESTS);
 			}
 		};
 		
@@ -263,4 +363,5 @@ public class WaitFreeLinkedListTests
 		for (int i = 0; i < n; i++)
 			tests.delete(random.nextInt(RAND_MAX));
 	}
+	
 }
