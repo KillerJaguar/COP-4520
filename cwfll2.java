@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentHashMap;
 
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.Semaphore;//just in case
 import java.util.concurrent.TimeUnit;
 
 enum Operation
@@ -26,10 +26,12 @@ public class cwfll2 {
 	
 	// Map to link thread to state array
 	ConcurrentMap<Thread, Integer> threadMap;
+	Thread[] threads;
 	
 	// Current highest phase number 
 	AtomicLong phaseNumber;
 	
+	//shouldn't all of these be atomic?
 	class State
 	{
 		final long phaseNumber;
@@ -53,6 +55,7 @@ public class cwfll2 {
 	public static void main(String[] args) throws Exception{
 	
 		int numThreads=4;//decide how many, somehow
+		Thread[] threads=new Thread[numThreads];
 		threadMap = new ConcurrentHashMap<Thread, Integer>(numThreads);
 		threadState = (State[]) new Object[numThreads];
 		startTime = System.currentTimeMillis();
@@ -61,12 +64,18 @@ public class cwfll2 {
 		
 		startTime = System.currentTimeMillis();
 		
+		phaseNumber=new AtomicLong(0);
+		
 		temp=0;
 		while (temp<threadMap.size()){
 			
-			threadState[threadId] = new State((long)0, (Operation)NONE, 0);//initialise the thread state array
+			//initialise the thread state array
+			threadState[threadId] = new State((long)0, (Operation)NONE, 0);
 			
-			threadMap.put(new Thread(new RunnableThread("thread"+temp,temp,startTime),"thread"+temp));//make the threads and put them in the map
+			//make the threads and put them in the map
+			threads[temp]=new Thread(new RunnableThread("thread"+temp,temp,startTime, phaseNumber),"thread"+temp);
+			threadMap.put(threads[temp]);
+			
 			temp+=1;
 		}
 	
@@ -94,11 +103,11 @@ class RunnableThread implements Runnable{
 	public RunnableThread() {
 	}
 	
-	public RunnableThread(String threadName,int tin, long start) {
+	public RunnableThread(String threadName,int tin, long start, AtomicLong phase) {
 		name=threadName;
 		startTime=start;
 		index=tin;
-		phaseNumber = new AtomicLong(0);
+		phaseNumber = phase;
         runner = new Thread(this, threadName);   // (1) Create a new thread.
 
         runner.start();                          // (2) Start the thread.
@@ -117,29 +126,28 @@ class RunnableThread implements Runnable{
 					continue;
 				
 				// Higher phase number, skip
-				if (state.phaseNumber > phaseNumber)
+				if (state.phaseNumber.get() > phaseNumber.get())
 					continue;
 				
 				// Operation already completed. skip
-				if (state.success.get())
+				if (state.success.get() || state.operation!=NONE)
 					continue;
 				
 				// Perform operation
 				switch (state.operation)
 				{
 					//as written, this won't work. we need to figure out how to give the thread the linked list so it can operate on it.
-					//we also need to"properly report success or failure to each of the threads that initiated the operation"
-					//and ensure "only the threads that initiated the operation (and not the helping threads) compete on setting the additional success bit"
-					case INSERT: _insert(item, state.success,threadIdHelping); 
+					//we also need to "properly report success or failure to each of the threads that initiated the operation"
+					//and ensure for EDELETE, "only the threads that initiated the operation (and not the helping threads) compete on setting the additional success bit"
+					case INSERT: _insert(item, state.success,threads[i]); 
 						break;
-					case SDELETE: _searchDelete(item, state.success,threadIdHelping); 
+					case SDELETE: _searchDelete(item, state.success,threads[i]); 
 						break;
-					case EDELETE: _executeDelete(item, state.success,threadIdHelping); 
-						break;
+					case EDELETE: _executeDelete(item, state.success,threads[i]); 
 						break;
 					case CONTAINS: 
 					//and we need to figure out how to return the result of this operation
-					_contains(item, state.success); 
+					_contains(item, state.success,threads[i]); 
 					break;
 					
 				}
@@ -221,10 +229,12 @@ public class ConcurrentWaitFreeLinkedList<E extends Comparable<E>>
 	}
 	
 	//all this should do is mark the state information!
+	//the thread needs to be looking for other threads to help at all times, whether or not it has been called upon to initiate an operation yet
 	boolean operate(int threadId, Operation operation, E item)
 	{
-		long phaseNumber = this.phaseNumber.getAndIncrement();
-		threadState[threadId] = new State(phaseNumber, operation, item);
+		//if we used getAndIncrement, it wouldn't be higher than the previous phase number on the first time!
+		long phaseNum = this.phaseNumber.incrementAndGet();
+		threadState[threadId] = new State(phaseNum, operation, item);
 	}
 	
 	public String toString()
@@ -325,6 +335,7 @@ public class ConcurrentWaitFreeLinkedList<E extends Comparable<E>>
 	{
 		if (!iter.deleted.get())
 		{
+			//in this case, the flag needs to be set by the thread that first wanted it done, not by the one that actually completed it (unless they're the same thread)
 			iter.deleted.set(true);
 			
 			if (prev != null)
@@ -353,8 +364,9 @@ public class ConcurrentWaitFreeLinkedList<E extends Comparable<E>>
 		}
 		
 		if (iter == null){
-				success.compareAndSet(false, true);
-		return false;}
+			success.compareAndSet(false, true);
+			return false;
+		}
 		
 		
 	}
