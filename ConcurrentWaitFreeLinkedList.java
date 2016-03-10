@@ -26,18 +26,12 @@ public class ConcurrentWaitFreeLinkedList<E>
 	class Node
 	{
 		final E item;
-		AtomicMarkableReference<Node> next;
+		final AtomicMarkableReference<Node> next;
 		
-		public Node(E item)
+		public Node(E item, Node next)
 		{
 			this.item = item;
-			this.next = new AtomicMarkableReference<Node>(null, true);
-		}
-		
-		public Node(E item, AtomicMarkableReference<Node> next)
-		{
-			this.item = item;
-			this.next = new AtomicMarkableReference<Node>(next.getReference(), next.isMarked());
+			this.next = new AtomicMarkableReference<Node>(next, false);
 		}
 	}
 	
@@ -47,7 +41,7 @@ public class ConcurrentWaitFreeLinkedList<E>
 		final Operation operation;
 		final E item;
 		
-		AtomicBoolean success;
+		final AtomicBoolean success;
 		
 		public State(long phaseNumber, Operation operation, E item)
 		{
@@ -90,10 +84,8 @@ public class ConcurrentWaitFreeLinkedList<E>
 	@SuppressWarnings("unchecked")
 	public ConcurrentWaitFreeLinkedList(int numThreads)
 	{
-		this.head = new Node(null);
-		this.tail = new Node(null);
-		
-		this.head.next.set(this.tail, false);
+		this.tail = new Node(null, null);
+		this.head = new Node(null, tail);
 		
 		this.threadId = new ThreadLocal<Integer>();
 		this.nextId = new AtomicInteger();
@@ -190,8 +182,7 @@ public class ConcurrentWaitFreeLinkedList<E>
 				return false;
 			
 			// Create new node
-			Node node = new Node(item);
-			node.next = new AtomicMarkableReference<Node>(curr, false);
+			Node node = new Node(item, curr);
 			
 			// Install new node, else retry loop
 			if (!success.get() && pred.next.compareAndSet(curr, node, false, false))
