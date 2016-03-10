@@ -58,14 +58,24 @@ public class ConcurrentWaitFreeLinkedList<E>
 		}
 	}
 	
+	class Window
+	{
+		final Node pred, curr;
+		
+		public Window(Node pred, Node curr)
+		{
+			this.pred = pred;
+			this.curr = curr;
+		}
+	}
+	
 	enum Operation
 	{
 		INSERT,
 		DELETE,
 	}
 	
-	final Node head;
-	//AtomicReference<Node> tail;
+	final Node head, tail;
 	
 	// ID of executing thread
 	ThreadLocal<Integer> threadId;
@@ -81,7 +91,9 @@ public class ConcurrentWaitFreeLinkedList<E>
 	public ConcurrentWaitFreeLinkedList(int numThreads)
 	{
 		this.head = new Node(null);
-		//this.tail = new AtomicReference<Node>(new Node(null));
+		this.tail = new Node(null);
+		
+		this.head.next.set(this.tail, false);
 		
 		this.threadId = new ThreadLocal<Integer>();
 		this.nextId = new AtomicInteger();
@@ -108,7 +120,7 @@ public class ConcurrentWaitFreeLinkedList<E>
 		while (iter != null && (hashIter = iter.item.hashCode()) <= hash)
 		{
 			if (hash == hashIter && item.equals(iter.item))
-				return iter.next.isMarked();
+				return !iter.next.isMarked();
 		}
 		
 		return false;
@@ -164,45 +176,70 @@ public class ConcurrentWaitFreeLinkedList<E>
 		}
 	}
 	
-	// WAIT-FREE
-	void _insert(E item, AtomicBoolean success)
+	Window find(E item)
 	{
-		Node iter = head.next.getReference(), prev = head;
+		boolean snip;
 		
-		while (iter != null)
+		// If list changes while traversed, start over
+		retry: while(true)
 		{
-			Node next = iter.next.getReference();
+			// Start looking from head
+			Node pred = head;
+			Node curr = pred.next.getReference();
 			
-			// If item is logically deleted, set and move to the next node
-			// TODO confirm works -- mark bit should specify this node, not next
-			if (prev.next.compareAndSet(iter, next, false, true))
+			// Move down the list
+			while (true)
 			{
-				iter = next;
-				continue;
+				boolean[] marked = {false};
+				Node succ = curr.next.get(marked);
+				
+				while (marked[0])
+				{
+					// Try to snip out node
+					// If predecessor's next field changed, must retry whole traversal
+					if (!pred.next.compareAndSet(curr, succ, false, false))
+						continue retry;
+					
+					curr = succ;
+					succ = curr.next.get(marked);
+				}
+				
+				
+				if (item.hashCode() >= succ.item.hashCode() || item.equals(succ.item))
+					return new Window(pred, succ);
+				
+				pred = curr;
+				curr = succ;
 			}
-			
-			int compare = item.hashCode() - iter.item.hashCode();
-			
-			// If both hash and item are the same, element already exists
-			// Conflicting hash values iterate until there is no conflict
-			if (compare == 0 && item.equals(iter.item))
-				return;
-			
-			// Iterator has larger value, so stop here
-			else if (compare > 0)
-				break;
-			
-			prev = iter;
-			iter = iter.next.getReference();
 		}
-		
-		// Linearization point
-		if (success.compareAndSet(false, true))
-			prev.next.set(new Node(item, prev.next), true);
 	}
 	
-	void _delete(E item, AtomicBoolean success)
+	// LOCK-FREE
+	boolean _insert(E item, AtomicBoolean success)
 	{
+		while (true)
+		{
+			Window window = find(item);
+			Node pred = window.pred, curr = window.curr;
+			
+			// Item already exists
+			if (item.hashCode() == curr.item.hashCode() && item.equals(curr.item))
+				return false;
+			
+			// Create new node
+			Node node = new Node(item);
+			node.next = new AtomicMarkableReference<Node>(curr, false);
+			
+			// Install new node, else retry loop
+			if (pred.next.compareAndSet(curr, node, false, false))
+				return true;
+		}
+	}
+	
+	boolean _delete(E item, AtomicBoolean success)
+	{
+		return false;
+		
 		// search_delete
 		
 		/*Node iter = head, prev = null;
