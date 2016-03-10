@@ -194,8 +194,11 @@ public class ConcurrentWaitFreeLinkedList<E>
 			node.next = new AtomicMarkableReference<Node>(curr, false);
 			
 			// Install new node, else retry loop
-			if (pred.next.compareAndSet(curr, node, false, false) && success.compareAndSet(false, true))
+			if (!success.get() && pred.next.compareAndSet(curr, node, false, false))
+			{
+				success.compareAndSet(false, true);
 				return true;
+			}
 		}
 		
 		// The operation succeeded by another thread, therefore it is true 
