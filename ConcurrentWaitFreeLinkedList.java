@@ -33,6 +33,12 @@ public class ConcurrentWaitFreeLinkedList<E>
 			this.item = item;
 			this.next = new AtomicMarkableReference<Node>(null, true);
 		}
+		
+		public Node(E item, AtomicMarkableReference<Node> next)
+		{
+			this.item = item;
+			this.next = new AtomicMarkableReference<Node>(next.getReference(), next.isMarked());
+		}
 	}
 	
 	class State
@@ -94,20 +100,21 @@ public class ConcurrentWaitFreeLinkedList<E>
 		operate(Operation.DELETE, item);
 	}
 	
-	// NOT COMPLETE
 	public boolean contains(E item)
 	{
-		// WARNING What if item is inserted before the current node iterator?
+		int hash = item.hashCode(), hashIter;
+		Node iter = head.next.getReference();
 		
-		/*for (Node iter = head; iter != null; iter = iter.next)
+		while (iter != null && (hashIter = iter.item.hashCode()) <= hash)
 		{
-			if (item.compareTo(iter.item) == 0)
-				return !iter.deleted.get();
-		}*/
+			if (hash == hashIter && item.equals(iter.item))
+				return iter.next.isMarked();
+		}
 		
 		return false;
 	}
 	
+	// WARNING not multi-threaded, only a debug function to ensure correctness
 	public String toString()
 	{
 		StringBuilder sb = new StringBuilder("[");
@@ -135,7 +142,7 @@ public class ConcurrentWaitFreeLinkedList<E>
 		threadState[getThreadId()] = new State(phaseNumber, operation, item);
 		
 		for (State state : threadState)
-		{	
+		{
 			// No state exists, skip
 			if (state == null)
 				continue;
@@ -167,6 +174,7 @@ public class ConcurrentWaitFreeLinkedList<E>
 			Node next = iter.next.getReference();
 			
 			// If item is logically deleted, set and move to the next node
+			// TODO confirm works -- mark bit should specify this node, not next
 			if (prev.next.compareAndSet(iter, next, false, true))
 			{
 				iter = next;
@@ -188,22 +196,9 @@ public class ConcurrentWaitFreeLinkedList<E>
 			iter = iter.next.getReference();
 		}
 		
-		boolean mark = prev.next.isMarked();
-		
-		Node insert = new Node(item);
-		insert.next.set(iter, mark);
-		
-		// Linearization point -- done before setting the value
+		// Linearization point
 		if (success.compareAndSet(false, true))
-		{
-			prev.next.set(insert, true);
-			
-			//if (!prev.next.compareAndSet(iter, insert, mark, true))
-			//	_insert(item);
-			
-			//else
-				//threadState[stateId].success = true;
-		}
+			prev.next.set(new Node(item, prev.next), true);
 	}
 	
 	void _delete(E item, AtomicBoolean success)
