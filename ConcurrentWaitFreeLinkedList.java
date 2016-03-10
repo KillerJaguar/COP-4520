@@ -112,6 +112,7 @@ public class ConcurrentWaitFreeLinkedList<E>
 		operate(Operation.DELETE, item);
 	}
 	
+	// WAIT-FREE
 	public boolean contains(E item)
 	{
 		int hash = item.hashCode(), hashIter;
@@ -176,10 +177,10 @@ public class ConcurrentWaitFreeLinkedList<E>
 		}
 	}
 	
-	// LOCK-FREE
+	// WAIT-FREE(?)
 	boolean _insert(E item, AtomicBoolean success)
 	{
-		while (true)
+		while (!success.get())
 		{
 			Window window = find(item);
 			Node pred = window.pred, curr = window.curr;
@@ -193,9 +194,13 @@ public class ConcurrentWaitFreeLinkedList<E>
 			node.next = new AtomicMarkableReference<Node>(curr, false);
 			
 			// Install new node, else retry loop
-			if (pred.next.compareAndSet(curr, node, false, false))
+			if (pred.next.compareAndSet(curr, node, false, false) && success.compareAndSet(false, true))
 				return true;
 		}
+		
+		// The operation succeeded by another thread, therefore it is true 
+		// that the item was inserted
+		return true;
 	}
 	
 	// LOCK-FREE
