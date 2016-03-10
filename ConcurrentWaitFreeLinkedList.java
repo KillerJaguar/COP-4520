@@ -176,6 +176,82 @@ public class ConcurrentWaitFreeLinkedList<E>
 		}
 	}
 	
+	// LOCK-FREE
+	boolean _insert(E item, AtomicBoolean success)
+	{
+		while (true)
+		{
+			Window window = find(item);
+			Node pred = window.pred, curr = window.curr;
+			
+			// Item already exists
+			if (item.hashCode() == curr.item.hashCode() && item.equals(curr.item))
+				return false;
+			
+			// Create new node
+			Node node = new Node(item);
+			node.next = new AtomicMarkableReference<Node>(curr, false);
+			
+			// Install new node, else retry loop
+			if (pred.next.compareAndSet(curr, node, false, false))
+				return true;
+		}
+	}
+	
+	// LOCK-FREE
+	boolean _delete(E item, AtomicBoolean success)
+	{
+		while (true)
+		{
+			Window window = find(item);
+			Node pred = window.pred, curr = window.curr;
+			
+			// Item is not found
+			if (item.hashCode != curr.item.hashCode() || !item.equals(curr.item))
+				return false;
+			
+			Node succ = curr.next.getReference();
+			
+			// Try to mark node as deleted
+			// If it doesn't work, just retry, otherwise job is done
+			if (!curr.next.compareAndSet(succ, succ, false, true))
+				continue;
+			
+			// Try to advance reference 
+			// If we don't succeed, someone else did or will
+			pred.next.compareAndSet(curr, succ, false, false);
+			return true;
+		}
+		
+		// search_delete
+		
+		/*Node iter = head, prev = null;
+		while (iter != null)
+		{
+			if (item.compareTo(iter.item) == 0)
+				break;
+			
+			prev = iter;
+			iter = iter.next;
+		}
+		
+		if (iter == null)
+			return;
+		
+		// execute_delete
+		
+		if (!iter.deleted.get())
+		{
+			iter.deleted.set(true);
+			
+			if (prev != null)
+				prev.next = iter.next;
+			
+			else
+				head = head.next;
+		}*/
+	}
+	
 	Window find(E item)
 	{
 		boolean snip;
@@ -212,60 +288,5 @@ public class ConcurrentWaitFreeLinkedList<E>
 				curr = succ;
 			}
 		}
-	}
-	
-	// LOCK-FREE
-	boolean _insert(E item, AtomicBoolean success)
-	{
-		while (true)
-		{
-			Window window = find(item);
-			Node pred = window.pred, curr = window.curr;
-			
-			// Item already exists
-			if (item.hashCode() == curr.item.hashCode() && item.equals(curr.item))
-				return false;
-			
-			// Create new node
-			Node node = new Node(item);
-			node.next = new AtomicMarkableReference<Node>(curr, false);
-			
-			// Install new node, else retry loop
-			if (pred.next.compareAndSet(curr, node, false, false))
-				return true;
-		}
-	}
-	
-	boolean _delete(E item, AtomicBoolean success)
-	{
-		return false;
-		
-		// search_delete
-		
-		/*Node iter = head, prev = null;
-		while (iter != null)
-		{
-			if (item.compareTo(iter.item) == 0)
-				break;
-			
-			prev = iter;
-			iter = iter.next;
-		}
-		
-		if (iter == null)
-			return;
-		
-		// execute_delete
-		
-		if (!iter.deleted.get())
-		{
-			iter.deleted.set(true);
-			
-			if (prev != null)
-				prev.next = iter.next;
-			
-			else
-				head = head.next;
-		}*/
 	}
 }
