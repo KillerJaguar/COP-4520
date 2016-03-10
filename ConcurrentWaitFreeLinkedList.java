@@ -1,23 +1,8 @@
-/*
-To achieve wait-freedom, a helping mechanism is used. The
-helping mechanism employs a special state array, with an entry for
-each thread. When a thread wishes to perform an operation on the
-list, it first chooses a phase number, higher than all phase numbers
-previously selected, and posts an operation-descriptor in its state
-array entry. The operation descriptor describes the operation it
-wishes to perform and also contains the phase number. Next, the
-threadgoes throughall thestatearray, andhelps performoperations
-with smaller or equal phase numbers. This ensures wait-freedom:
-a delayed operation eventually receives help from all threads and
-soon completes.
-*/
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicMarkableReference;
 
 public class ConcurrentWaitFreeLinkedList<E>
@@ -76,7 +61,7 @@ public class ConcurrentWaitFreeLinkedList<E>
 	AtomicInteger nextId;
 	
 	// State array of operations for each thread
-	State[] threadState;
+	List<State> threadState;
 	
 	// Current highest phase number 
 	AtomicLong phaseNumber;
@@ -90,8 +75,11 @@ public class ConcurrentWaitFreeLinkedList<E>
 		this.threadId = new ThreadLocal<Integer>();
 		this.nextId = new AtomicInteger();
 		
-		this.threadState = (State[]) new Object[numThreads];
+		this.threadState = new ArrayList<State>(numThreads);
 		this.phaseNumber = new AtomicLong(0);
+		
+		for (int i = 0; i < numThreads; i++)
+			threadState.add(null);
 	}
 	
 	public void insert(E item)
@@ -137,14 +125,14 @@ public class ConcurrentWaitFreeLinkedList<E>
 	{
 		Integer index = threadId.get();
 		if (index == null)
-			threadId.set(nextId.getAndIncrement());
+			threadId.set(index = nextId.getAndIncrement());
 		return index;
 	}
 	
 	void operate(Operation operation, E item)
 	{
 		long phaseNumber = this.phaseNumber.getAndIncrement();
-		threadState[getThreadId()] = new State(phaseNumber, operation, item);
+		threadState.set(getThreadId(), new State(phaseNumber, operation, item));
 		
 		for (State state : threadState)
 		{
@@ -194,6 +182,7 @@ public class ConcurrentWaitFreeLinkedList<E>
 		
 		// The operation succeeded by another thread, therefore it is true 
 		// that the item was inserted
+		// OBJECTION it is possible the item was already inserted and therefore returned false
 		return true;
 	}
 	
@@ -253,8 +242,6 @@ public class ConcurrentWaitFreeLinkedList<E>
 	
 	Window find(E item)
 	{
-		boolean snip;
-		
 		// If list changes while traversed, start over
 		retry: while(true)
 		{
@@ -278,7 +265,6 @@ public class ConcurrentWaitFreeLinkedList<E>
 					curr = succ;
 					succ = curr.next.get(marked);
 				}
-				
 				
 				if (item.hashCode() >= succ.item.hashCode() || item.equals(succ.item))
 					return new Window(pred, succ);
