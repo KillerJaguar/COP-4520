@@ -207,7 +207,7 @@ public class ConcurrentWaitFreeLinkedList<E>
 			Node pred = window.pred, curr = window.curr;
 			
 			// Item is not found
-			if (item.hashCode != curr.item.hashCode() || !item.equals(curr.item))
+			if (item.hashCode() != curr.item.hashCode() || !item.equals(curr.item))
 				return false;
 			
 			Node succ = curr.next.getReference();
