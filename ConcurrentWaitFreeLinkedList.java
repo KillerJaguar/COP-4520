@@ -16,26 +16,22 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicMarkableReference;
 
-public class ConcurrentWaitFreeLinkedList<E extends Comparable<E>>
+public class ConcurrentWaitFreeLinkedList<E>
 	implements WaitFreeLinkedList<E>
 {
 	class Node
 	{
-		E item;
-		Node next;
+		final E item;
+		AtomicMarkableReference<Node> next;
 		
-		// Flag to signify that the node is logically deleted
-		AtomicBoolean deleted;
-		
-		public Node(E item, Node next)
+		public Node(E item)
 		{
 			this.item = item;
-			this.next = next;
-			this.deleted = new AtomicBoolean(false);
+			this.next = new AtomicMarkableReference<Node>(null, true);
 		}
 	}
 	
@@ -62,13 +58,12 @@ public class ConcurrentWaitFreeLinkedList<E extends Comparable<E>>
 		DELETE,
 	}
 	
-	Node head, tail;
+	final Node head;
+	//AtomicReference<Node> tail;
 	
-	// Map to link thread to state array
-	ConcurrentMap<Thread, Integer> threadMap;
-	
-	// ID of thread to add into the threadMap
-	volatile int threadId;
+	// ID of executing thread
+	ThreadLocal<Integer> threadId;
+	AtomicInteger nextId;
 	
 	// State array of operations for each thread
 	State[] threadState;
@@ -79,34 +74,36 @@ public class ConcurrentWaitFreeLinkedList<E extends Comparable<E>>
 	@SuppressWarnings("unchecked")
 	public ConcurrentWaitFreeLinkedList(int numThreads)
 	{
-		this.head = null;
-		this.tail = null;
+		this.head = new Node(null);
+		//this.tail = new AtomicReference<Node>(new Node(null));
 		
-		this.threadId = 0;
-		this.threadMap = new ConcurrentHashMap<Thread, Integer>(numThreads);
+		this.threadId = new ThreadLocal<Integer>();
+		this.nextId = new AtomicInteger();
+		
 		this.threadState = (State[]) new Object[numThreads];
 		this.phaseNumber = new AtomicLong(0);
 	}
 	
 	public void insert(E item)
 	{
-		operate(getThreadCurrentId(), Operation.INSERT, item);
+		operate(Operation.INSERT, item);
 	}
 	
 	public void delete(E item)
 	{
-		operate(getThreadCurrentId(), Operation.DELETE, item);
+		operate(Operation.DELETE, item);
 	}
 	
+	// NOT COMPLETE
 	public boolean contains(E item)
 	{
 		// WARNING What if item is inserted before the current node iterator?
 		
-		for (Node iter = head; iter != null; iter = iter.next)
+		/*for (Node iter = head; iter != null; iter = iter.next)
 		{
 			if (item.compareTo(iter.item) == 0)
 				return !iter.deleted.get();
-		}
+		}*/
 		
 		return false;
 	}
@@ -114,7 +111,7 @@ public class ConcurrentWaitFreeLinkedList<E extends Comparable<E>>
 	public String toString()
 	{
 		StringBuilder sb = new StringBuilder("[");
-		for (Node iter = head; iter != null; iter = iter.next)
+		for (Node iter = head; iter != null; iter = iter.next.getReference())
 		{
 			sb.append(iter.item.toString());
 			if (iter.next != null)
@@ -124,22 +121,21 @@ public class ConcurrentWaitFreeLinkedList<E extends Comparable<E>>
 		return sb.toString();
 	}
 	
-	int getThreadCurrentId()
+	int getThreadId()
 	{
-		Thread current = Thread.currentThread();
-		if (threadMap.containsKey(current))
-			return threadMap.get(current);
-		else
-			return threadMap.put(current, threadId++);
+		Integer index = threadId.get();
+		if (index == null)
+			threadId.set(nextId.getAndIncrement());
+		return index;
 	}
 	
-	void operate(int threadId, Operation operation, E item)
+	void operate(Operation operation, E item)
 	{
 		long phaseNumber = this.phaseNumber.getAndIncrement();
-		threadState[threadId] = new State(phaseNumber, operation, item);
+		threadState[getThreadId()] = new State(phaseNumber, operation, item);
 		
 		for (State state : threadState)
-		{
+		{	
 			// No state exists, skip
 			if (state == null)
 				continue;
@@ -161,63 +157,60 @@ public class ConcurrentWaitFreeLinkedList<E extends Comparable<E>>
 		}
 	}
 	
+	// WAIT-FREE
 	void _insert(E item, AtomicBoolean success)
 	{
-		if (head == null)
-		{
-			if (success.compareAndSet(false, true))
-				head = new Node(item, null);
-			
-			return;
-		}
+		Node iter = head.next.getReference(), prev = head;
 		
-		Node iter = head, prev = null;
 		while (iter != null)
 		{
-			// Item is deleted, so proceed to next without changing the prev
-			if (iter.deleted.get())
+			Node next = iter.next.getReference();
+			
+			// If item is logically deleted, set and move to the next node
+			if (prev.next.compareAndSet(iter, next, false, true))
 			{
-				iter = iter.next;
+				iter = next;
 				continue;
 			}
 			
-			int compare = item.compareTo(iter.item);
+			int compare = item.hashCode() - iter.item.hashCode();
 			
-			// Same value, item already exists, nothing else needed
-			if (compare == 0)
+			// If both hash and item are the same, element already exists
+			// Conflicting hash values iterate until there is no conflict
+			if (compare == 0 && item.equals(iter.item))
 				return;
 			
-			// Less than current, so goes behind current
-			else if (compare < 0)
-			{
-				if (success.compareAndSet(false, true))
-				{
-					// WARNING What happens if previous was deleted?
-					
-					if (prev != null)
-						prev.next = new Node(item, iter.next);
-					
-					else 
-						head = new Node(item, head);
-				}
-				
-				return;
-			}
+			// Iterator has larger value, so stop here
+			else if (compare > 0)
+				break;
 			
 			prev = iter;
-			iter = iter.next;
+			iter = iter.next.getReference();
 		}
 		
-		// Insert at tail
+		boolean mark = prev.next.isMarked();
+		
+		Node insert = new Node(item);
+		insert.next.set(iter, mark);
+		
+		// Linearization point -- done before setting the value
 		if (success.compareAndSet(false, true))
-			prev.next = new Node(item, null);
+		{
+			prev.next.set(insert, true);
+			
+			//if (!prev.next.compareAndSet(iter, insert, mark, true))
+			//	_insert(item);
+			
+			//else
+				//threadState[stateId].success = true;
+		}
 	}
 	
 	void _delete(E item, AtomicBoolean success)
 	{
 		// search_delete
 		
-		Node iter = head, prev = null;
+		/*Node iter = head, prev = null;
 		while (iter != null)
 		{
 			if (item.compareTo(iter.item) == 0)
@@ -241,6 +234,6 @@ public class ConcurrentWaitFreeLinkedList<E extends Comparable<E>>
 			
 			else
 				head = head.next;
-		}
+		}*/
 	}
 }

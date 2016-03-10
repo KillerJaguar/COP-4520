@@ -1,4 +1,4 @@
-public interface WaitFreeLinkedList<E extends Comparable<E>>
+public interface WaitFreeLinkedList<E>
 {
 	void insert(E item);
 	void delete(E item);
