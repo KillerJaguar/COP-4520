@@ -8,9 +8,9 @@ public class cwfllTests2
 	
 	public static void main(String[] args)
 	{		
-		ConcurrentWaitFreeLinkedList3<Integer> test;
+		ConcurrentWaitFreeLinkedList4<Integer> test;
 		
-		test = new ConcurrentWaitFreeLinkedList3<Integer>(1);
+		test = new ConcurrentWaitFreeLinkedList4<Integer>(1);
 		
 		System.out.println("Testing one thread...");
 		if (SIMPLE){
@@ -22,7 +22,7 @@ public class cwfllTests2
 			System.out.println("Execution time 80i/10d/10c: " + test1Thread(test,.8,.1) + " ms");
 			System.out.println("Execution time 10i/10d/80c: " + test1Thread(test,.1,.1) + " ms");
 		}
-		test = new ConcurrentWaitFreeLinkedList3<Integer>(2);
+		test = new ConcurrentWaitFreeLinkedList4<Integer>(2);
 		
 		try
 		{
@@ -40,7 +40,7 @@ public class cwfllTests2
 			System.out.println(e.getMessage());
 		}
 			
-		test = new ConcurrentWaitFreeLinkedList3<Integer>(4);
+		test = new ConcurrentWaitFreeLinkedList4<Integer>(4);
 		
 		try
 		{
@@ -59,7 +59,7 @@ public class cwfllTests2
 			System.out.println(e.getMessage());
 		}
 		
-		test = new ConcurrentWaitFreeLinkedList3<Integer>(8);
+		test = new ConcurrentWaitFreeLinkedList4<Integer>(8);
 		
 		try
 		{
@@ -78,7 +78,7 @@ public class cwfllTests2
 		}
 	}
 	
-	static long test1Thread(ConcurrentWaitFreeLinkedList3 test,double dist1, double dist2)
+	static long test1Thread(ConcurrentWaitFreeLinkedList4 test,double dist1, double dist2)
 	{
 		long startTime = System.currentTimeMillis();
 		
@@ -98,7 +98,7 @@ public class cwfllTests2
 		return System.currentTimeMillis() - startTime;
 	}
 	
-	static long test2Threads(ConcurrentWaitFreeLinkedList3 test,double dist1, double dist2)
+	static long test2Threads(ConcurrentWaitFreeLinkedList4 test,double dist1, double dist2)
 		throws InterruptedException
 	{
 		long startTime = System.currentTimeMillis();
@@ -151,7 +151,7 @@ public class cwfllTests2
 		return System.currentTimeMillis() - startTime;
 	}
 	
-	static long test4Threads(ConcurrentWaitFreeLinkedList3 test,double dist1, double dist2)
+	static long test4Threads(ConcurrentWaitFreeLinkedList4 test,double dist1, double dist2)
 		throws InterruptedException
 	{
 		long startTime = System.currentTimeMillis();
@@ -244,7 +244,7 @@ public class cwfllTests2
 		return System.currentTimeMillis() - startTime;
 	}
 	
-	static long test8Threads(ConcurrentWaitFreeLinkedList3 test,double dist1, double dist2)
+	static long test8Threads(ConcurrentWaitFreeLinkedList4 test,double dist1, double dist2)
 		throws InterruptedException
 	{
 		long startTime = System.currentTimeMillis();
@@ -409,41 +409,41 @@ public class cwfllTests2
 		return System.currentTimeMillis() - startTime;
 	}
 	
-	static void simple1(ConcurrentWaitFreeLinkedList3 tests){
-		
-		tests.insert(0, 10);
-		tests.insert(0, 23);
-		//tests.delete(0, 23);
-		tests.insert(0, 17);
+	static void simple1(ConcurrentWaitFreeLinkedList4 tests){
+		System.out.println(tests);
+		tests.insert(10);
+		tests.insert(23);
+		//tests.delete(23);
+		tests.insert(17);
 		System.out.println(tests);
 	}
 	
 	// Inserts random values n times
-	static void testInsert(ConcurrentWaitFreeLinkedList3 tests, int n, int thr)
+	static void testInsert(ConcurrentWaitFreeLinkedList4 tests, int n, int thr)
 	{
 		Random random = new Random();
 		
 		for (int i = 0; i < n; i++)
-			tests.insert(thr, random.nextInt(RAND_MAX));
+			tests.insert(random.nextInt(RAND_MAX));
 	}
 	
 	// Deletes n random values
-	static void testDelete(ConcurrentWaitFreeLinkedList3 tests, int n, int thr)
+	static void testDelete(ConcurrentWaitFreeLinkedList4 tests, int n, int thr)
 	{
 		//testContains(tests, n, thr);
 		Random random = new Random();
 		
 		for (int i = 0; i < n; i++)
-			tests.delete(thr, random.nextInt(RAND_MAX));
+			tests.delete(random.nextInt(RAND_MAX));
 	}
 	
 	// checks for n random values
-	static void testContains(ConcurrentWaitFreeLinkedList3 tests, int n, int thr)
+	static void testContains(ConcurrentWaitFreeLinkedList4 tests, int n, int thr)
 	{
 		Random random = new Random();
 		
 		for (int i = 0; i < n; i++)
-			tests.contains(thr, random.nextInt(RAND_MAX));
+			tests.contains(random.nextInt(RAND_MAX));
 	}
 	
 }
