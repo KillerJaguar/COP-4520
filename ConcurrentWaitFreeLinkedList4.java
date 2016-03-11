@@ -117,18 +117,17 @@ public class ConcurrentWaitFreeLinkedList4<E extends Comparable<E>>
 	// WARNING not multi-threaded, only a debug function to ensure correctness
 	public String toString()
 	{
-		//if (head.equals(null))
-		//return "ded";
-		
-		
+
 		StringBuilder sb = new StringBuilder("[");
 		for (Node iter = head; iter != null; iter = iter.next.getReference())
 		{
 			if (!iter.equals(tail))
 			{
+				if (!iter.next.isMarked()){
 			sb.append(iter.toString());
 			if (iter.next.toString() != "null")
-			sb.append(", ");
+				sb.append(", ");}
+		
 			}else
 				sb.append("null");
 		}
@@ -183,15 +182,24 @@ public class ConcurrentWaitFreeLinkedList4<E extends Comparable<E>>
 			Node pred = window.pred, curr = window.curr;
 			
 			// Item already exists
-			if(item.equals(curr.item))
+			if(item.equals(pred.item)){
+				System.out.println("dupe");
+			if (item.hashCode() == pred.item.hashCode()) 
+			
+				return false;
+			}
+			if(item.equals(curr.item)){
+				System.out.println("dupe");
 			if (item.hashCode() == curr.item.hashCode()) 
 			
 				return false;
+			}
 			
 			// Create new node
 			Node node = new Node(item, curr);
 			
 			// Install new node, else retry loop
+
 			if (!success.get() && pred.next.compareAndSet(curr, node, false, false))
 			{
 				success.compareAndSet(false, true);

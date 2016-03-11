@@ -413,8 +413,10 @@ public class cwfllTests2
 		System.out.println(tests);
 		tests.insert(10);
 		tests.insert(23);
-		//tests.delete(23);
 		tests.insert(17);
+		tests.delete(23);
+		//tests.insert(17);
+		
 		System.out.println(tests);
 	}
 	
