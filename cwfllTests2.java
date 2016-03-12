@@ -412,10 +412,23 @@ public class cwfllTests2
 	static void simple1(ConcurrentWaitFreeLinkedList4 tests){
 		System.out.println(tests);
 		tests.insert(10);
+		System.out.println(tests);
 		tests.insert(23);
-		tests.insert(17);
-		tests.delete(23);
+		System.out.println(tests);
+		tests.insert(5);
+		tests.insert(6);
+		System.out.println(tests);
 		//tests.insert(17);
+		tests.delete(5);
+		System.out.println(tests);
+		//tests.insert(5);
+		//tests.insert(23);
+		//tests.insert(10);
+		//tests.insert(11);
+		if (tests.contains(23))
+			System.out.println("ye");
+		else
+			System.out.println("na");
 		
 		System.out.println(tests);
 	}
