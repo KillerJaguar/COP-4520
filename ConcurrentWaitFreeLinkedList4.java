@@ -64,8 +64,7 @@ public class ConcurrentWaitFreeLinkedList4<E extends Comparable<E>>
 	final Node head, tail;
 	
 	// ID of executing thread
-	ThreadLocal<Integer> threadId;
-	AtomicInteger nextId;
+	ThreadId threadId;
 	
 	// State array of operations for each thread
 	List<State> threadState;
@@ -79,8 +78,7 @@ public class ConcurrentWaitFreeLinkedList4<E extends Comparable<E>>
 		this.tail = new Node(null, null);
 		this.head = new Node(null, tail);
 		
-		this.threadId = new ThreadLocal<Integer>();
-		this.nextId = new AtomicInteger();
+		this.threadId = new ThreadId();
 		
 		this.threadState = new ArrayList<State>(numThreads);
 		this.phaseNumber = new AtomicLong(0);
@@ -135,18 +133,10 @@ public class ConcurrentWaitFreeLinkedList4<E extends Comparable<E>>
 		return sb.toString();
 	}
 	
-	int getThreadId()
-	{
-		Integer index = threadId.get();
-		if (index == null)
-			threadId.set(index = nextId.getAndIncrement());
-		return index;
-	}
-	
 	void operate(Operation operation, E item)
 	{
 		long phaseNumber = this.phaseNumber.getAndIncrement();
-		threadState.set(getThreadId(), new State(phaseNumber, operation, item));
+		threadState.set(threadId.getId(), new State(phaseNumber, operation, item));
 		
 		for (State state : threadState)
 		{
@@ -376,4 +366,22 @@ public class ConcurrentWaitFreeLinkedList4<E extends Comparable<E>>
 		
 	}*/
 	
+}
+
+class ThreadId
+{
+	AtomicInteger nextId = new AtomicInteger();
+	ThreadLocal<Integer> threadId = new ThreadLocal<Integer>()
+	{
+		@Override
+		protected Integer initialValue()
+		{
+			return nextId.getAndIncrement();
+		}
+	};
+	
+	public int getId()
+	{
+		return nextId.get();
+	}
 }
