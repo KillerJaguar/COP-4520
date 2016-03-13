@@ -2,13 +2,13 @@ import java.util.Random;
 
 public class cwfllTests2
 {
-	static final int NUM_TESTS = 500000;
-	static final int RAND_MAX  = 1000;//250000;
-	static final boolean SIMPLE= true;
+	static final int NUM_TESTS = 50;
+	static final int RAND_MAX  = 10;//250000;
+	static final boolean SIMPLE= false;
 	
 	public static void main(String[] args)
 	{		
-		ConcurrentWaitFreeLinkedList4<Integer> test;
+		ConcurrentWaitFreeLinkedList4<Integer>test;
 		
 		test = new ConcurrentWaitFreeLinkedList4<Integer>(1);
 		
@@ -18,7 +18,7 @@ public class cwfllTests2
 		}
 		else{
 			System.out.println("Execution time 10i/80d/10c: " + test1Thread(test,.1,.8) + " ms");
-			System.out.println(test);
+			//System.out.println(test);
 			System.out.println("Execution time 80i/10d/10c: " + test1Thread(test,.8,.1) + " ms");
 			System.out.println("Execution time 10i/10d/80c: " + test1Thread(test,.1,.1) + " ms");
 		}
@@ -411,7 +411,7 @@ public class cwfllTests2
 	
 	static void simple1(ConcurrentWaitFreeLinkedList4 tests){
 		System.out.println(tests);
-		tests.insert(10);
+		tests.delete(10);
 		System.out.println(tests);
 		tests.insert(23);
 		System.out.println(tests);
