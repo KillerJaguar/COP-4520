@@ -289,38 +289,34 @@ public class ConcurrentWaitFreeLinkedList4<E extends Comparable<E>>
 	
 	Window find(E item)
 	{
-
-		Node curr = null; 
-		Node prev = null;
-		Node succ = null;
+		long phase=threadState.get(threadId.getId()).phaseNumber;
 		boolean [ ] marked ={ false }; 
 		boolean snip;
 
 		retry : while(true){
-			prev = head;
-			curr = prev.next.getReference(); // advanc ing curr
+			Node prev = head;
+			Node curr = prev.next.getReference(); 
 			while(true){
-				succ = curr.next.get(marked); // advancing succ and r e a deleted i ng curr.next ’ s mark
-				while(marked [0]){ // curr i s l og i c a l l y delete deleted a s h o u l deleted be removed
-					// remove a p h y s i c a l l y delete deleted node :
+				Node succ = curr.next.get(marked); 
+				while(marked [0]){ 
 					snip = prev.next.compareAndSet(curr, succ, false, false);
-					if(! isSearchStillPending(threadId.getId(), threadState.get(threadId.getId()).phaseNumber))
-						return null; // t o e n s u r e wai t-f r e edom.
+					State curr2 = threadState.get(threadId.getId());
+					if (!(curr2.phaseNumber == phase && (curr2.operation == Operation.INSERT || curr2.operation == Operation.DELETE)))
+						return null;
 					if(! snip) 
-						continue retry; // l i s t has changed, retry
-					curr = succ; // advancing curr
-					succ = curr.next.get(marked); // advancing succ and reading curr.next ’ s mark
+						continue retry;
+					curr = succ;
+					succ = curr.next.get(marked); 
 				}if (succ==null || succ.toString().equals("null"))
 					return new Window(prev, curr);
 				
 				if (item.toString().equals(succ.toString()))
 					return new Window(curr, succ);
-				//System.out.println("if"+item.toString()+" "+succ.toString());
-				if(item.hashCode() < succ.item.hashCode()){ // t h e curr.k e y i s l a rg e enough - found t h e window
-				//System.out.println("cif"+prev.toString()+" "+curr.toString());
+				
+				if(item.hashCode() < succ.item.hashCode()){
 				return new Window(curr, succ);
 				}
-				prev = curr; curr = succ; // advancing prev & curr
+				prev = curr; curr = succ;
 			}
 		}
 
@@ -328,43 +324,40 @@ public class ConcurrentWaitFreeLinkedList4<E extends Comparable<E>>
 	Window find2(E item)
 	{
 
-		Node curr = null; 
-		Node prev = null;
-		Node succ = null;
+
+		long phase=threadState.get(threadId.getId()).phaseNumber;
 		boolean [ ] marked ={ false }; 
 		boolean snip;
 
 		retry : while(true){
-			prev = head;
-			curr = prev.next.getReference(); // advanc ing curr
+			Node prev = head;
+			Node curr = prev.next.getReference();
 			while(true){
-				succ = curr.next.get(marked); // advancing succ and r e a deleted i ng curr.next ’ s mark
-				while(marked [0]){ // curr i s l og i c a l l y delete deleted a s h o u l deleted be removed
-					// remove a p h y s i c a l l y delete deleted node :
+				Node succ = curr.next.get(marked);
+				while(marked [0]){
 					snip = prev.next.compareAndSet(curr, succ, false, false);
-					if(! isSearchStillPending(threadId.getId(), threadState.get(threadId.getId()).phaseNumber))
-						return null; // t o e n s u r e wai t-f r e edom.
+					
+					State curr2 = threadState.get(threadId.getId());
+					if (!(curr2.phaseNumber == phase && (curr2.operation == Operation.INSERT || curr2.operation == Operation.DELETE)))
+						return null;
+					
 					if(! snip) 
-						continue retry; // l i s t has changed, retry
-					curr = succ; // advancing curr
-					succ = curr.next.get(marked); // advancing succ and reading curr.next ’ s mark
+						continue retry; 
+					curr = succ; 
+					succ = curr.next.get(marked); 
 				}if (succ==null || succ.toString().equals("null"))
 					return new Window(prev, curr);
 				
-				//System.out.println("s"+item.toString()+" "+curr.toString());
+				
 				if (item.toString().equals(curr.toString())){
-					//curr = succ; // advancing curr
-					//succ = curr.next.get(marked);
-					//System.out.println("picked "+prev.toString()+","+curr.toString());
+					
 					return new Window(prev, curr);
-				}//else
-					//System.out.println("G "+item.toString().compareTo(curr.toString()));
+				}
 			
-				if(item.hashCode() < succ.item.hashCode()){ // t h e curr.k e y i s l a rg e enough - found t h e window
-				//System.out.println("picked "+prev.toString()+","+curr.toString());
+				if(item.hashCode() < succ.item.hashCode()){
 				return new Window(prev, curr);
 				}
-				prev = curr; curr = succ; // advancing prev & curr
+				prev = curr; curr = succ;
 			}
 		}
 
@@ -372,71 +365,9 @@ public class ConcurrentWaitFreeLinkedList4<E extends Comparable<E>>
 	
 	
 	
-	boolean isSearchStillPending(int tid, long ph){
-		State curr = threadState.get(tid);
-		return(curr.operation == Operation.INSERT || curr.operation == Operation.DELETE) && curr.phaseNumber == ph; // t h e o p e r a t i o n i s pending wi t h a phas e lowe r th an ph.
-	}
-	
-	/*Window find(E item){
-		
-		Node curr = null; 
-		Node prev = null;
-		
-		boolean [ ] marked ={ false }; 
-		boolean snip;
-		// If list changes while traversed, start over
-		while(true){
-			System.out.println("q");
-			//System.out.println(item);
-			// Start looking from head
-			prev = head;
-			curr = prev.next.getReference();
-			int broken=0;
-			
-			// Move down the list
-			while (true)
-			{
-				System.out.println("r");
-				//boolean[] marked = {false};
-				Node succ = curr.next.get(marked);
 
-				while (marked[0])
-				{
-					System.out.println("s");
-					// Try to snip out node
-					// If predecessor's next field changed, must retry whole traversal
-					if (!prev.next.compareAndSet(curr, succ, false, false)){
-						broken=1; 
-						break;
-					}
-						
-					
-					curr = succ;
-					succ = curr.next.get(marked);
-				}
-				
-				if (broken==1){
-					break;
-				}
-				if (curr.equals(null))
-				System.out.println("a");
-				if (succ.equals(null))
-				System.out.println("b");
-				if (prev.equals(null))
-				System.out.println("c");
-				
-				if (succ.equals(null))
-					return new Window(prev, curr);
-				if (curr.item.compareTo(item)>=0)
-					return new Window(prev, curr);
-				System.out.println("u");
-				
-				prev = curr;
-				curr = succ;
-			}
-		}
-		
-	}*/
+	
+	
 	
 }
 
