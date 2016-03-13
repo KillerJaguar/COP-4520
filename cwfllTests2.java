@@ -2,8 +2,8 @@ import java.util.Random;
 
 public class cwfllTests2
 {
-	static final int NUM_TESTS = 50;
-	static final int RAND_MAX  = 10;//250000;
+	static final int NUM_TESTS = 500000;
+	static final int RAND_MAX  = 200;//250000;
 	static final boolean SIMPLE= false;
 	
 	public static void main(String[] args)

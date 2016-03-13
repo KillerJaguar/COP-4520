@@ -107,6 +107,8 @@ public class ConcurrentWaitFreeLinkedList4<E extends Comparable<E>>
 		//int hash = item.hashCode(), hashIter;
 		//Node iter = head.next.getReference();
 		Window window = find2(item);
+		if (window==null)
+				return false;
 		if (!window.pred.toString().equals("null")){
 			//System.out.println("w"+window.pred.toString());
 			if (window.pred.item.equals(item))
@@ -185,7 +187,8 @@ public class ConcurrentWaitFreeLinkedList4<E extends Comparable<E>>
 		{
 			//System.out.println("y");
 			Window window = find(item);
-			
+			if (window==null)
+				return false;
 			Node pred = window.pred, curr = window.curr;
 			if (item==null)
 			return false;
@@ -222,12 +225,20 @@ public class ConcurrentWaitFreeLinkedList4<E extends Comparable<E>>
 		while (true)
 		{
 			Window window = find2(item);
-			Node pred = window.pred, curr = window.curr;
+			
+			if (window==null)
+				return false;
+				//System.out.println("want "+ item.toString() +","+this.toString());
+			Node curr = window.curr;
+			Node pred = window.pred;
+			
 			
 			
 			// Item is not found
-			if (pred.toString().equals("null") && curr.toString().equals("null"))
+			if (pred.toString().equals("null"))
 				return false;
+			
+			
 			
 			if (item.hashCode() != curr.item.hashCode() || !item.toString().equals(curr.toString())){
 				//System.out.println("dd"+item.toString()+" "+pred.toString()+" "+curr.toString());
