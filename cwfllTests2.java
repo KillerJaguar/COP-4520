@@ -39,7 +39,7 @@ public class cwfllTests2
 		{
 			System.out.println(e.getMessage());
 		}
-			
+		
 		test = new ConcurrentWaitFreeLinkedList4<Integer>(4);
 		
 		try
@@ -108,8 +108,10 @@ public class cwfllTests2
 		// First thread inserts
 		threads[0] = new Thread()
 		{
+			
 			public void run()
 			{
+				//int gmtid=0;
 				for (int i=0;i<NUM_TESTS/2;i++){
 					double temp=Math.random();
 					if (temp<=dist1)
@@ -121,6 +123,7 @@ public class cwfllTests2
 			}
 				//testInsert(test, NUM_TESTS);
 			}
+			
 		};
 		
 		threads[0].start();
@@ -128,8 +131,10 @@ public class cwfllTests2
 		// Second thread deletes
 		threads[1] = new Thread()
 		{
+			
 			public void run()
 			{
+				//int gmtid=1;
 				for (int i=0;i<NUM_TESTS/2;i++){
 					double temp=Math.random();
 					if (temp<=dist1)
@@ -411,7 +416,7 @@ public class cwfllTests2
 	
 	static void simple1(ConcurrentWaitFreeLinkedList4 tests){
 		System.out.println(tests);
-		tests.delete(10);
+		/*tests.delete(10);
 		System.out.println(tests);
 		tests.insert(23);
 		System.out.println(tests);
@@ -420,7 +425,7 @@ public class cwfllTests2
 		System.out.println(tests);
 		//tests.insert(17);
 		tests.delete(5);
-		System.out.println(tests);
+		System.out.println(tests);*/
 		//tests.insert(5);
 		//tests.insert(23);
 		//tests.insert(10);
