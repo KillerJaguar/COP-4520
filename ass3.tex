@@ -433,7 +433,7 @@ We have implemented a sequential version of an ordered linked list with no dupli
 
 % Note that keywords are not normally used for peerreview papers.
 \begin{IEEEkeywords}
-IEEE, IEEEtran, journal, \LaTeX, paper, linked, list, multi-threading, wait-free.
+IEEE, IEEEtran, journal, \LaTeX, paper, linked, list, multi-threading, java, lock-free, wait-free.
 \end{IEEEkeywords}
 
 
@@ -472,7 +472,7 @@ IEEE, IEEEtran, journal, \LaTeX, paper, linked, list, multi-threading, wait-free
 
 
 
-\IEEEPARstart{D}{ata} structures designed for sequential programming tend to require extensive adjustments in order to make them perform well in a multi-threaded environment. Along those lines, our linked list (based on prior work) is implemented so as to work in a wait-free manner. Although it seemed like it ought to be straightforward, the process turned out to be much more difficult and time-consuming than initially expected.
+\IEEEPARstart{D}{ata} structures designed for sequential programming tend to require extensive adjustments in order to make them perform well in a multi-threaded environment. Along those lines, our linked list (based on prior work) is implemented so as to work in a wait-free manner. Although it seemed like it ought to be straightforward, the process turned out to be much more difficult and time-consuming than initially expected. For various reasons, deviations were made from the original design upon which ours is based, and our implementation is in some ways worse and in some ways better.
 % You must have at least 2 lines in the paragraph with the drop letter
 % (should never be an issue)
 
@@ -482,10 +482,10 @@ IEEE, IEEEtran, journal, \LaTeX, paper, linked, list, multi-threading, wait-free
 \hfill March 14, 2016
 
 \subsection{Wait-Free Linked Lists}
-In the past, we implemented a sequential version of the titular data structure of Shahar Timnat's, Anastasia Braginsky's, Alex Kogan's, and Erez Petrank's paper, "Wait-Free Linked Lists." As described in that paper, the linked list does not allow duplicate entries, and automatically keeps the list sorted from least to greatest. The progress guarantee is the wait-freedom, and it is achieved by each thread using no locks at any time, plus each thread helping the other threads to perform their tasks, if the other threads initiated an operation first. As long as the scheduler lets at least one thread have time to work on the linked list, the worst case scenario should be that it acts sequential. In order to avoid locks, as many operations as needed are done atomically. For example, compare-and-sets, gets, and sets are all used. Because we coincidentally used the same language as the authors of the paper, we were able to follow their example and did not have to deviate from their technique.
+In the past, we implemented a sequential version of the titular data structure of Shahar Timnat's, Anastasia Braginsky's, Alex Kogan's, and Erez Petrank's paper, "Wait-Free Linked Lists." As described in that paper, the linked list does not allow duplicate entries, and automatically keeps the list sorted from least to greatest. The progress guarantee is the wait-freedom, and it is achieved by each thread using no locks at any time, plus each thread helping the other threads to perform their tasks, if the other threads initiated an operation first. As long as the scheduler lets at least one thread have time to work on the linked list, the worst case scenario should be that it acts sequential. In order to avoid locks, as many operations as needed are done atomically. For example, compare-and-sets, gets, and sets are all used. Because we coincidentally used the same language as the authors of the paper, we were able to follow their example and did not have to deviate from their general technique very much.
 
-\section{Our Linked List}
-As far as we can tell, the linked list we have produced works in just the same way as the one in the paper. It has the operations "insert," "delete," and "contains," which all work in a wait-free manner thanks to the strategic use of atomic variables. Ours is in a way more advanced; instead of only accepting integers, our linked list allows the linked list to contain items in one of any Comparable class. 
+\subsection{Our Linked List}
+As far as we can tell, the linked list we have produced works in just the same way as the one in the paper. It has the operations "insert," "delete," and "contains," the first two of which work in a wait-free manner thanks to the strategic use of atomic variables. Ours is in a way more advanced; instead of only accepting integers, our linked list allows the linked list to contain items in one of any Comparable class. We created it this way from the beginning, not knowing until late into the project that the original was an integer-only structure. As such we are unable to compare our final code with non-existing code for an integer-only design of our creation. Our implementation differs in another way as well; the "contains" operation does not benefit from the helping mechanism, so ours does not bother with that. 
 
 \subsection{The Process Of Creation}
 As in the case of our previous paper, GitHub was our primary method of sharing code. Some of the code from the sequential version was used, but the final code does not resemble it. The authors of the original paper wrote another one on the same subject, and provided example code and more detailed instructions for implementation, which was of great help to us. Also of great help was a lecture which we attended that made it clear that, despite our thinking otherwise, the data structure which we now know exists in the form of "atomicMarkedReference" in Java would in fact be necessary. We had believed that we could get around it by way of a separate atomic boolean indicating logical deletion for the nodes, but we were proven incorrect. 
@@ -515,18 +515,21 @@ The biggest obstacle by far in our implementation was preventing race conditions
 %\IEEEpubidadjcol
 
 \subsection{Performance}
-We tested our linked list, using 1, 2, 4, and 8 threads. As expected, it fared better than the earlier sequential version, with the caveat that, for unknown reasons, the larger the values involved, more and more of an unprecedented decrease in performance would be caused, which in most cases was mitigated by having more threads, moreso the higher the values are. Although at first it seemed we could definitely attribute the loss of performance to deletions, this turned out to be untrue, and we could find no specific cause.
-
+We tested our linked list, using 1, 2, 4, and 8 threads. As expected, it fared better than the earlier sequential version, with the caveat that, for unknown reasons, the larger the values involved, more and more of an unprecedented decrease in performance would be caused, which in  was mitigated by having more than one thread, moreso the higher the values are. 
+\\
 \includegraphics [scale=0.45]{chart1.png}
-
+\\
 \includegraphics [scale=0.45]{chart2.png}
-
+\\
 \includegraphics [scale=0.45]{chart3.png}
 
-\par Different distributions of insertions deletions, and containses were performed (one type of operation making up 80 percent, and the other two each using 10 percent, different in each case), shown by the key on the right of each graph. During each test, 500000 operations were performed by all of the threads combined. The testing procedure was largely the same as for the sequential implementation, although with different distributions for the ratios of operations done. Oddly, at one point during testing, adding more threads generally made performance worse. It is unknown if this was due to some peculiarity in the machine used for testing, but we can only surmise that this is the case. The problem stopped manifesting later on. Our testing machine was an 8-core computer running Windows 7.
+\par Different distributions of insertions, deletions, and containses, were performed (one type of operation making up 80 percent, and the other two each using 10 percent, different in each case), shown by the key positioned to the right of each graph. During each test, 500000 operations were performed by all of the threads combined. The testing procedure was largely the same as for the sequential implementation, although with the ratios of operations done having been altered. 
+\par Oddly, at one point during testing, adding more threads generally made performance worse. It is unknown if this was due to some peculiarity in the machine used for testing, but we can only surmise that this is the case. The problem stopped manifesting later on. Our testing machine was an 8-core computer running Windows 7. Although at first it seemed that we could definitely attribute the loss of performance when using high numbers to deletions, this turned out to be untrue, and we could find no specific cause. 
+\par On our test machine, the best results given our test parameters seemed to be those for which we used two threads only, followed by four, then eight. We could come up with no good explanation for why this is the case, although it is possible that if we had been able to test on other machines, we might have found the trends to be significantly different. Our best explanation for this phenomenon, if it is roughly consistent across other systems, is that we could have accidentally introduced some kind of overhead that scales up with the number of threads, which is most significantly overcome by the advantages of the wait-freedom in the case of having two threads.
 
 \subsection{Comparison To Alternative Data Structures}
-
+The closest alternative data structure would appear to be the lock-free linked list which served as the basis that the one we attempted to implement was intended to improve upon. We do not believe there are any possible cases in which that design would be more beneficial than the wait-free linked list, excepting for the situation of having an implementation of the former that is implemented so much more poorly that it manages to run more slowly or use excessively more memory than the latter.
+\par Another alternative data structure is the lock-free dynamically-resizable array, which we did not have time to do anything more than extremely cursory research on. 
 
 % An example of a floating figure using the graphicx package.
 % Note that \label must occur AFTER (or within) \caption.
@@ -626,7 +629,7 @@ We tested our linked list, using 1, 2, 4, and 8 threads. As expected, it fared b
 
 
 \section{Conclusion}
-We implemented a wait-free version of an ordered set in the Java programming language and tested its performance using different numbers of threads to access it. It was more performant than our sequential version, except that using large values was mysteriously a major cause of lowered performance. There were some features which we had believed were important or even necessary, which turned out not to have been incorporated by the authors of the original text. We were not able to implement them, possibly for some of the same reasons as the authors, which may have included impossibility, or at least prohibitive impracticality.
+We implemented a wait-free version of an ordered set in the Java programming language and tested its performance using different numbers of threads to access it. It was more performant than our sequential version, except that using large values was mysteriously a major cause of lowered performance, and adding more threads did still become counterproductive after a certain point. There were some features which we had believed were important or even necessary, which turned out not to have been incorporated by the authors of the original text. We were not able to implement them, possibly for some of the same reasons as the authors, which may have included impossibility, or at least prohibitive impracticality. Offsetting this, we succeeded at extending the data structure to be capable of being instantiated so as to store not only integers, but any object that implements Comparable, which the original authors had not done, but which we had anticipated that they would have done.
 
 
 
